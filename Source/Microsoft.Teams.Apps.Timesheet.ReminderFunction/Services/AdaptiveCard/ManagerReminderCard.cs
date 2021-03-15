@@ -81,7 +81,7 @@ namespace Microsoft.Teams.Apps.Timesheet.ReminderFunction.Services.AdaptiveCard
                 {
                     new AdaptiveOpenUrlAction
                     {
-                        Url = new Uri($"https://teams.microsoft.com/l/entity/{applicationManifestId}/dashboard"),
+                        Url = new Uri($"https://teams.microsoft.com/l/entity/{applicationManifestId}/manager-dashboard"),
                         Title = $"{localizer.GetString("ManagerReminderCardButtonText")}",
                     },
                 },

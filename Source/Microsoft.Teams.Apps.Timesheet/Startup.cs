@@ -212,8 +212,8 @@ namespace Microsoft.Teams.Apps.Timesheet
                 vaultUri: new Uri($"{this.configuration["KeyVaultUrl:BaseURL"]}/"),
                 credential: new DefaultAzureCredential());
 
-            this.configuration["App:Id"] = client.GetSecret("MicrosoftAppId--SecretKey").Value.Value;
-            this.configuration["App:Password"] = client.GetSecret("MicrosoftAppPassword--SecretKey").Value.Value;
+            this.configuration["AzureAd:ClientId"] = this.configuration["App:Id"] = client.GetSecret("MicrosoftAppId--SecretKey").Value.Value;
+            this.configuration["AzureAd:ClientSecret"] = this.configuration["App:Password"] = client.GetSecret("MicrosoftAppPassword--SecretKey").Value.Value;
             this.configuration["SQLStorage:ConnectionString"] = client.GetSecret("SQLStorageConnectionString--SecretKey").Value.Value;
         }
     }

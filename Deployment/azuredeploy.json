@@ -24,7 +24,7 @@
         "description": "The client secret of the bot Azure Active Directory app."
       }
     },
-"tenantId": {
+    "tenantId": {
       "defaultValue": "[subscription().tenantId]",
       "minLength": 1,
       "maxLength": 36,
@@ -42,7 +42,7 @@
         "description": "The Id of the tenant to which the app will be deployed."
       }
     },
-"customDomainOption": {
+    "customDomainOption": {
       "defaultValue": "Azure Front Door",
       "allowedValues": [
         "Custom domain name (recommended)",
@@ -53,7 +53,7 @@
         "description": "How the app will be hosted on a domain that is not *.azurewebsites.net. Azure Front Door is an easy option that the template can set up automatically, but it comes with ongoing monthly costs. "
       }
     },
-"sqlAdministratorLogin": {
+    "sqlAdministratorLogin": {
       "type": "String",
       "metadata": {
         "description": "The administrator username of the SQL Server."
@@ -79,16 +79,16 @@
         "description": "The size of the SQL Server."
       }
     },
-"reminderFrequency": {
+    "reminderFrequency": {
       "type": "String",
-"defaultValue": "0 0 17 * * 1-5",
+      "defaultValue": "0 0 17 * * 1-5",
       "metadata": {
         "description": "CRON expression for setting time and frequency of reminder notifications. By default, it will send reminder at 5 PM IST on weekdays. Refer https://docs.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer?tabs=csharp#ncrontab-expressions for CRON expressions."
       }
     },
-"timeZone": {
+    "timeZone": {
       "type": "String",
-"defaultValue": "Indian Standard Time",
+      "defaultValue": "Indian Standard Time",
       "metadata": {
         "description": "Timezone on which reminder notifications will be sent."
       }
@@ -236,7 +236,8 @@
     "hostingPlanName": "[parameters('baseResourceName')]",
     "botAppInsightsName": "[parameters('baseResourceName')]",
     "keyVaultName": "[concat(variables('botAppName'), 'vault')]",
-    "keyVaultUrl": "[concat('https://',variables('keyVaultName'), '.vault.azure.net/secrets/')]",
+    "keyVaultUrl": "[concat('https://',variables('keyVaultName'), '.vault.azure.net')]",
+    "storageAccountName": "[concat(variables('baseResourceName'), '-storage')]",
     "microsoftAppId": "MicrosoftAppId",
     "microsoftAppPassword": "MicrosoftAppPassword",
     "sharedSkus": [
@@ -252,6 +253,20 @@
     "sqlDatabaseName": "[concat(parameters('baseResourceName'), 'db')]"
   },
   "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('storageAccountName')]",
+      "apiVersion": "2019-06-01",
+      "location": "[parameters('location')]",
+      "kind": "Storage",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false
+      },
+      "sku": {
+        "name": "Standard_LRS"
+      }
+    },
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2016-09-01",
@@ -295,7 +310,7 @@
         "dailyMemoryTimeQuota": 0,
         "httpsOnly": true,
         "siteConfig": {
-          "ftpsState":  "Disabled",
+          "ftpsState": "Disabled",
           "alwaysOn": true,
           "appsettings": [
             {
@@ -401,6 +416,10 @@
             {
               "name": "AzureAd:ClientSecret",
               "value": "MicrosoftAppPassword--SecretKey"
+            },
+            {
+              "name": "UseKeyVault",
+              "value": true
             },
             {
               "name": "KeyVaultUrl:BaseURL",
@@ -541,7 +560,8 @@
       "location": "[parameters('location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
-        "[resourceId('Microsoft.Insights/components/', variables('botAppInsightsName'))]"
+        "[resourceId('Microsoft.Insights/components/', variables('botAppInsightsName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ],
       "kind": "functionapp",
       "properties": {
@@ -551,6 +571,7 @@
         "clientAffinityEnabled": false,
         "httpsOnly": true,
         "siteConfig": {
+          "ftpsState": "Disabled",
           "alwaysOn": true,
           "appSettings": [
             {
@@ -590,35 +611,39 @@
               "value": "[parameters('timeZone')]"
             },
             {
-              "name": "Values:TimerInterval",
+              "name": "TimerInterval",
               "value": "[parameters('reminderFrequency')]"
             },
             {
-              "name": "Values:AzureWebJobsStorage",
-              "value": "UseDevelopmentStorage=true"
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-05-01-preview').key1,';')]"
             },
             {
-              "name": "Values:ConnectionString",
+              "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2015-05-01-preview').key1,';')]"
+            },
+            {
+              "name": "ConnectionString",
               "value": "[concat('Server=tcp:',reference(variables('sqlServerName')).fullyQualifiedDomainName,',1433;Initial Catalog=',variables('sqlDatabaseName'),';Persist Security Info=False;User ID=',parameters('sqlAdministratorLogin'),';Password=',parameters('sqlAdministratorLoginPassword'),';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;')]"
             },
             {
-              "name": "Values:MicrosoftAppId",
+              "name": "MicrosoftAppId",
               "value": "[parameters('botClientId')]"
             },
             {
-              "name": "Values:MicrosoftAppPassword",
+              "name": "MicrosoftAppPassword",
               "value": "[parameters('botClientSecret')]"
             },
             {
-              "name": "Values:AppBaseUri",
+              "name": "AppBaseUri",
               "value": "[concat('https://', variables('frontDoorDomain'))]"
             },
             {
-              "name": "Values:i18n:DefaultCulture",
+              "name": "i18n:DefaultCulture",
               "value": "[parameters('defaultCulture')]"
             },
             {
-              "name": "Values:ManifestId",
+              "name": "ManifestId",
               "value": "[parameters('manifestId')]"
             }
           ]
