@@ -295,6 +295,7 @@
         "dailyMemoryTimeQuota": 0,
         "httpsOnly": true,
         "siteConfig": {
+          "ftpsState":  "Disabled",
           "alwaysOn": true,
           "appsettings": [
             {
@@ -548,6 +549,7 @@
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
         "hostingEnvironment": "",
         "clientAffinityEnabled": false,
+        "httpsOnly": true,
         "siteConfig": {
           "alwaysOn": true,
           "appSettings": [
